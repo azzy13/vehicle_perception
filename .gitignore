@@ -144,4 +144,5 @@ assets
 datasets
 cocoapi
 videos
+/videos/
 model
