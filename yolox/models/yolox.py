@@ -3,6 +3,7 @@
 # Copyright (c) 2014-2021 Megvii Inc. All rights reserved.
 
 import torch.nn as nn
+from loguru import logger
 
 from .yolo_head import YOLOXHead
 from .yolo_pafpn import YOLOPAFPN
@@ -21,7 +22,7 @@ class YOLOX(nn.Module):
             backbone = YOLOPAFPN()
         if head is None:
             head = YOLOXHead(80)
-
+        
         self.backbone = backbone
         self.head = head
 

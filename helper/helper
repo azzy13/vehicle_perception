@@ -1,0 +1,22 @@
+#Run Inference
+python3 tools/demo_track.py video -f exps/example/mot/carla_dataset.py -c pretrained/latest_ckpt.pth.tar --fp16 --fuse --save_result
+
+#kill all GPU processes
+nvidia-smi --query-compute-apps=pid --format=csv,noheader | xargs -n1 kill -9
+
+#Run custom training 
+python3 tools/train.py -f exps/example/mot/ansr_dev_dataset.py -d 2 -b 8 --fp16 -o -c pretrained/ansr_dev.pth.tar
+
+python3 tools/train.py -f exps/example/mot/carla_dataset.py -d 1 -b 4 --fp16 -o -c pretrained/ansr_dev.pth.tar
+
+#Carla tutorial headless
+https://arijitray1993.github.io/CARLA_tutorial/
+
+The parameters in the provided command are:
+
+1. `-f exps/example/mot/your_exp_file.py`: This specifies the path to the experiment configuration file that you want to use. In this case, it's located at `exps/example/mot/your_exp_file.py`.
+
+4. `--fp16`: This enables the use of mixed precision training, which can speed up training and reduce memory usage.
+
+5. `-o`: This enables the use of the optimizer specified in the experiment configuration file.
+
