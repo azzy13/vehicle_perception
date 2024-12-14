@@ -5,6 +5,7 @@
 import torch
 import torch.distributed as dist
 import torch.nn as nn
+from loguru import logger
 
 import os
 import random
@@ -70,12 +71,19 @@ class Exp(BaseExp):
 
         if getattr(self, "model", None) is None:
             in_channels = [256, 512, 1024]
+            #in_channels_pafpn = [128, 256, 512]
+            #in_channels_head = [128, 256, 512]
             backbone = YOLOPAFPN(self.depth, self.width, in_channels=in_channels)
             head = YOLOXHead(self.num_classes, self.width, in_channels=in_channels)
             self.model = YOLOX(backbone, head)
 
         self.model.apply(init_yolo)
         self.model.head.initialize_biases(1e-2)
+        total_params = 0
+        for p in self.model.parameters():
+            #logger.info("Param: {}".format(p))
+            total_params = total_params + p.numel()
+        logger.info("Trainable params: {}".format(total_params))
         return self.model
 
     def get_data_loader(self, batch_size, is_distributed, no_aug=False):

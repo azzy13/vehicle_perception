@@ -4,6 +4,8 @@ import scipy
 import lap
 from scipy.spatial.distance import cdist
 
+from yolox.tracker.ctra_kalman_filter import CTRAKalmanFilter
+
 from cython_bbox import bbox_overlaps as bbox_ious
 from yolox.tracker import kalman_filter
 import time
@@ -153,6 +155,25 @@ def fuse_motion(kf, cost_matrix, tracks, detections, only_position=False, lambda
             track.mean, track.covariance, measurements, only_position, metric='maha')
         cost_matrix[row, gating_distance > gating_threshold] = np.inf
         cost_matrix[row] = lambda_ * cost_matrix[row] + (1 - lambda_) * gating_distance
+    return cost_matrix
+
+def fuse_motion_ctra(kf, cost_matrix, tracks, detections):
+    """
+    Fuse motion cost with IoU-based cost to enhance matching using CTRA model.
+    """
+    if cost_matrix.size == 0:
+        return cost_matrix
+    for i, track in enumerate(tracks):
+        for j, detection in enumerate(detections):
+            # Predict state and get detection measurement
+            predicted_state = kf.predict_state(track.mean)
+            measurement = detection.to_xyah()[:2]  # Assuming [x, y] position
+            
+            # Compute motion distance
+            motion_distance = np.linalg.norm(predicted_state[:2] - measurement)
+
+            # Update cost matrix
+            cost_matrix[i, j] = 0.5 * cost_matrix[i, j] + 0.5 * motion_distance
     return cost_matrix
 
 

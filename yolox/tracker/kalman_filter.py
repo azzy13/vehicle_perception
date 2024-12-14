@@ -120,7 +120,9 @@ class KalmanFilter(object):
         mean = np.dot(mean, self._motion_mat.T)
         covariance = np.linalg.multi_dot((
             self._motion_mat, covariance, self._motion_mat.T)) + motion_cov
-
+        #covariance = np.linalg.multi_dot((
+        #    self._motion_mat, self._motion_mat.T, covariance)) + motion_cov
+        #covariance += motion_cov
         return mean, covariance
 
     def project(self, mean, covariance):
@@ -152,8 +154,10 @@ class KalmanFilter(object):
             self._update_mat, covariance, self._update_mat.T))
         return mean, covariance + innovation_cov
 
+    """
     def multi_predict(self, mean, covariance):
-        """Run Kalman filter prediction step (Vectorized version).
+        '''
+        Run Kalman filter prediction step (Vectorized version).
         Parameters
         ----------
         mean : ndarray
@@ -167,7 +171,7 @@ class KalmanFilter(object):
         (ndarray, ndarray)
             Returns the mean vector and covariance matrix of the predicted
             state. Unobserved velocities are initialized to 0 mean.
-        """
+        '''
         std_pos = [
             self._std_weight_position * mean[:, 3],
             self._std_weight_position * mean[:, 3],
@@ -190,6 +194,31 @@ class KalmanFilter(object):
         covariance = np.dot(left, self._motion_mat.T) + motion_cov
 
         return mean, covariance
+    """
+    def multi_predict(self, mean, covariance):
+        '''
+        Run Kalman filter prediction step (Vectorized version).
+        Parameters
+        ----------
+        mean : ndarray
+            The Nx8 dimensional mean matrix of the object states at the previous
+            time step.
+        covariance : ndarray
+            The Nx8x8 dimensional covariance matrics of the object states at the
+            previous time step.
+        Returns
+        -------
+        (ndarray, ndarray)
+            Returns the mean vector and covariance matrix of the predicted
+            state. Unobserved velocities are initialized to 0 mean.
+        '''
+        n = mean.shape[0]
+        result_mean = np.zeros_like(mean)
+        result_covariance = np.zeros_like(covariance)
+        for i in range(n):
+            result_mean[i], result_covariance[i] = self.predict(mean[i], covariance[i])
+        return result_mean, result_covariance
+    
 
     def update(self, mean, covariance, measurement):
         """Run Kalman filter correction step.

@@ -8,6 +8,11 @@ import torch.distributed as dist
 from yolox.exp import Exp as MyExp
 from yolox.data import get_yolox_datadir
 
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
 class Exp(MyExp):
     def __init__(self):
         super(Exp, self).__init__()
@@ -23,15 +28,16 @@ class Exp(MyExp):
         #self.test_size = (192, 256)
         self.random_size = (18, 32)
         #self.random_size = (4, 6)
-        self.max_epoch = 50
+        self.max_epoch = 1000
         self.print_interval = 20
         self.eval_interval = 10
         self.test_conf = 0.1
         self.nmsthre = 0.7
         self.no_aug_epochs = 5
-        self.basic_lr_per_img = 0.001 / 64.0
+        self.basic_lr_per_img = 0.001
         self.warmup_epochs = 1
         self.path = "coco"
+        self.eval_path = "kitti"
         #train on carla
         #self.path = "carla"
 
@@ -79,7 +85,6 @@ class Exp(MyExp):
         if is_distributed:
             batch_size = batch_size // dist.get_world_size()
 
-        '''
         sampler = InfiniteSampler(
             len(self.dataset), seed=self.seed if self.seed else 0
         )
@@ -95,53 +100,66 @@ class Exp(MyExp):
 
         dataloader_kwargs = {"num_workers": self.data_num_workers, "pin_memory": True}
         dataloader_kwargs["batch_sampler"] = batch_sampler
-        '''
-        train_loader = torch.utils.data.DataLoader(self.dataset, batch_size=int(batch_size/2))#, **dataloader_kwargs)
-
+        
         return train_loader
+    
+    def get_eval_dataset(self):
+        from yolox.data import KittiDataset, ValTransform
 
-    def get_eval_loader(self, batch_size, is_distributed, testdev=False):
-        from yolox.data import CarlaDataset, ValTransform
-
-        valdataset = CarlaDataset(
-            data_dir=os.path.join(get_yolox_datadir(), self.path),
-            json_file=self.val_ann,
+        valdataset = KittiDataset(
+            data_dir=os.path.join(get_yolox_datadir(), self.eval_path, "validation"),
             img_size=self.test_size,
-            name='valid',
+            training=False,
             preproc=ValTransform(
                 rgb_means=(0.485, 0.456, 0.406),
                 std=(0.229, 0.224, 0.225),
             ),
         )
 
+        return valdataset
+
+    def get_eval_loader(self, batch_size, is_distributed, testdev=False):
+        valdataset = self.get_eval_dataset()
+
+        '''
         if is_distributed:
-            batch_size = batch_size // dist.get_world_size()
+            batch_size = 1
             sampler = torch.utils.data.distributed.DistributedSampler(
                 valdataset, shuffle=False
             )
         else:
             sampler = torch.utils.data.SequentialSampler(valdataset)
+        '''
+        sampler = torch.utils.data.SequentialSampler(valdataset)
 
         dataloader_kwargs = {
             "num_workers": self.data_num_workers,
             "pin_memory": True,
             "sampler": sampler,
         }
-        dataloader_kwargs["batch_size"] = batch_size
+        dataloader_kwargs["batch_size"] = 1
         val_loader = torch.utils.data.DataLoader(valdataset, **dataloader_kwargs)
 
         return val_loader
 
     def get_evaluator(self, batch_size, is_distributed, testdev=False):
-        from yolox.evaluators import COCOEvaluator
+        from yolox.evaluators import KittiEvaluator
+
+        args = {}
+        args["track_thresh"] = 0.6
+        args["track_buffer"] = 30
+        args["match_thresh"] = 0.9
+        args["min_box_area"] = 50
+        args["mot20"] = False
+        args = AttrDict(args)
 
         val_loader = self.get_eval_loader(batch_size, is_distributed, testdev=testdev)
-        evaluator = COCOEvaluator(
+        evaluator = KittiEvaluator(
+            args=args,
             dataloader=val_loader,
             img_size=self.test_size,
             confthre=self.test_conf,
             nmsthre=self.nmsthre,
             num_classes=self.num_classes,
-            testdev=testdev,
         )
         return evaluator

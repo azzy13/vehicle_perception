@@ -97,7 +97,6 @@ class Trainer:
         targets = targets.to(self.data_type)
         targets.requires_grad = False
         data_end_time = time.time()
-
         with torch.cuda.amp.autocast(enabled=self.amp_training):
             outputs = self.model(inps, targets)
         loss = outputs["total_loss"]
@@ -149,6 +148,7 @@ class Trainer:
         )
         logger.info("init prefetcher, this might take one minute or less...")
         self.prefetcher = DataPrefetcher(self.train_loader)
+        logger.info("prefetcher done!")
         # max_iter means iters per epoch
         self.max_iter = len(self.train_loader)
 
@@ -159,11 +159,14 @@ class Trainer:
             occupy_mem(self.local_rank)
 
         if self.is_distributed:
+            logger.info("Initializing DDP...")
             model = DDP(model, device_ids=[self.local_rank], broadcast_buffers=False)
 
         if self.use_model_ema:
+            logger.info("Initializing EMA...")
             self.ema_model = ModelEMA(model, 0.9998)
             self.ema_model.updates = self.max_iter * self.start_epoch
+        logger.info("Setting model to train...")
 
         self.model = model
         self.model.train()
@@ -305,7 +308,8 @@ class Trainer:
         if self.rank == 0:
             self.tblogger.add_scalar("val/COCOAP50", ap50, self.epoch + 1)
             self.tblogger.add_scalar("val/COCOAP50_95", ap50_95, self.epoch + 1)
-            logger.info("\n" + summary)
+            if summary is not None:
+                logger.info("\n" + summary)
         synchronize()
 
         #self.best_ap = max(self.best_ap, ap50_95)

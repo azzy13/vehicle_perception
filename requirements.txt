@@ -20,6 +20,7 @@ cython==3.0.11
 setuptools==59.8.0
 cython_bbox==0.1.5
 pycocotools==2.0.8
+torchsummary
 
 # verified versions
 onnx==1.17.0

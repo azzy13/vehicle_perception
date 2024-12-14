@@ -87,6 +87,7 @@ def launch(
             args,
         )
     else:
+        logger.info("Start training without distributed process.")
         main_func(*args)
 
 
@@ -176,11 +177,12 @@ def _distributed_worker(
     dist_url,
     args,
 ):
+    global_rank = machine_rank * num_gpus_per_machine + local_rank
+    logger.info("Rank {} initializing...".format(global_rank))
     assert (
         torch.cuda.is_available()
     ), "cuda is not available. Please check your installation."
     configure_nccl()
-    global_rank = machine_rank * num_gpus_per_machine + local_rank
     logger.info("Rank {} initialization finished.".format(global_rank))
     try:
         dist.init_process_group(

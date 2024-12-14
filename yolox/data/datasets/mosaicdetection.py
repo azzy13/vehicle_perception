@@ -75,6 +75,7 @@ class MosaicDetection(Dataset):
 
     @Dataset.resize_getitem
     def __getitem__(self, idx):
+        input_dim_before = self.input_dim
         if self.enable_mosaic:
             mosaic_labels = []
             input_dim = self._dataset.input_dim
@@ -150,13 +151,15 @@ class MosaicDetection(Dataset):
             
             mix_img, padded_labels = self.preproc(mosaic_img, mosaic_labels, self.input_dim)
             img_info = (mix_img.shape[1], mix_img.shape[0])
-
+            #print("Mosaic ", mix_img.shape, self.input_dim, input_dim_before)
             return mix_img, padded_labels, img_info, np.array([idx])
 
         else:
             self._dataset._input_dim = self.input_dim
             img, label, img_info, id_ = self._dataset.pull_item(idx)
+            #print("Pre-Non-mosaic ", img.shape, self.input_dim)
             img, label = self.preproc(img, label, self.input_dim)
+            #print("Non-mosaic ", img.shape, self.input_dim, input_dim_before)
             return img, label, img_info, id_
 
     def mixup(self, origin_img, origin_labels, input_dim):

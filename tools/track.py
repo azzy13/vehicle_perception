@@ -7,7 +7,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from yolox.core import launch
 from yolox.exp import get_exp
 from yolox.utils import configure_nccl, fuse_model, get_local_rank, get_model_info, setup_logger
-from yolox.evaluators import MOTEvaluator
+from yolox.evaluators import KittiEvaluator
 
 import argparse
 import os
@@ -105,7 +105,8 @@ def make_parser():
     parser.add_argument("--track_thresh", type=float, default=0.6, help="tracking confidence threshold")
     parser.add_argument("--track_buffer", type=int, default=30, help="the frames for keep lost tracks")
     parser.add_argument("--match_thresh", type=float, default=0.9, help="matching threshold for tracking")
-    parser.add_argument("--min-box-area", type=float, default=100, help='filter out tiny boxes')
+    parser.add_argument("--min-box-area", type=float, default=50, help='filter out tiny boxes')
+    parser.add_argument("--ctra", default=False, action="store_true", help="use CTRA tracker.")
     parser.add_argument("--mot20", dest="mot20", default=False, action="store_true", help="test mot20.")
     return parser
 
@@ -148,7 +149,9 @@ def main(exp, args, num_gpu):
         os.makedirs(file_name, exist_ok=True)
 
     results_folder = os.path.join(file_name, "track_results")
+    ground_truth_folder = os.path.join(file_name, "ground_truth")
     os.makedirs(results_folder, exist_ok=True)
+    os.makedirs(ground_truth_folder, exist_ok=True)
 
     setup_logger(file_name, distributed_rank=rank, filename="val_log.txt", mode="a")
     logger.info("Args: {}".format(args))
@@ -161,11 +164,11 @@ def main(exp, args, num_gpu):
         exp.test_size = (args.tsize, args.tsize)
 
     model = exp.get_model()
-    logger.info("Model Summary: {}".format(get_model_info(model, exp.test_size)))
+    #logger.info("Model Summary: {}".format(get_model_info(model, exp.test_size)))
     #logger.info("Model Structure:\n{}".format(str(model)))
 
     val_loader = exp.get_eval_loader(args.batch_size, is_distributed, args.test)
-    evaluator = MOTEvaluator(
+    evaluator = KittiEvaluator(
         args=args,
         dataloader=val_loader,
         img_size=exp.test_size,
@@ -212,10 +215,11 @@ def main(exp, args, num_gpu):
         decoder = None
 
     # start evaluate
+    logger.info("Beginning evaluation!")
     *_, summary = evaluator.evaluate(
-        model, is_distributed, args.fp16, trt_file, decoder, exp.test_size, results_folder
+        model, is_distributed, args.fp16, decoder, results_folder, ground_truth_folder
     )
-    logger.info("\n" + summary)
+    #logger.info("\n" + summary)
 
     # evaluate MOTA
     mm.lap.default_solver = 'lap'
@@ -224,20 +228,15 @@ def main(exp, args, num_gpu):
         gt_type = '_val_half'
     else:
         gt_type = ''
-    print('gt_type', gt_type)
-    if args.mot20:
-        gtfiles = glob.glob(os.path.join('datasets/MOT20/train', '*/gt/gt{}.txt'.format(gt_type)))
-    else:
-        gtfiles = glob.glob(os.path.join('datasets/mot/train', '*/gt/gt{}.txt'.format(gt_type)))
-    print('gt_files', gtfiles)
-    tsfiles = [f for f in glob.glob(os.path.join(results_folder, '*.txt')) if not os.path.basename(f).startswith('eval')]
+    gtfiles = [f for f in glob.glob(os.path.join(ground_truth_folder, '*_nonheader.txt')) if not os.path.basename(f).startswith('eval')]
+    tsfiles = [f for f in glob.glob(os.path.join(results_folder, '*_nonheader.txt')) if not os.path.basename(f).startswith('eval')]
 
     logger.info('Found {} groundtruths and {} test files.'.format(len(gtfiles), len(tsfiles)))
     logger.info('Available LAP solvers {}'.format(mm.lap.available_solvers))
     logger.info('Default LAP solver \'{}\''.format(mm.lap.default_solver))
     logger.info('Loading files.')
     
-    gt = OrderedDict([(Path(f).parts[-3], mm.io.loadtxt(f, fmt='mot15-2D', min_confidence=1)) for f in gtfiles])
+    gt = OrderedDict([(os.path.splitext(Path(f).parts[-1])[0], mm.io.loadtxt(f, fmt='mot15-2D', min_confidence=-1)) for f in gtfiles])
     ts = OrderedDict([(os.path.splitext(Path(f).parts[-1])[0], mm.io.loadtxt(f, fmt='mot15-2D', min_confidence=-1)) for f in tsfiles])    
     
     mh = mm.metrics.create()    

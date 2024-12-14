@@ -1,23 +1,17 @@
-import numpy as np
-from collections import deque
-import os
-import os.path as osp
-import copy
-import torch
-import torch.nn.functional as F
-
-from .kalman_filter import KalmanFilter
 from .ctra_kalman_filter import CTRAKalmanFilter
+from .basetrack import BaseTrack
+from .matching import fuse_motion_ctra
+from .byte_tracker import TrackState, joint_stracks, sub_stracks, remove_duplicate_stracks
 from yolox.tracker import matching
-from .basetrack import BaseTrack, TrackState
+import numpy as np
 
 class STrack(BaseTrack):
-    shared_kalman = KalmanFilter()
+    shared_kalman = CTRAKalmanFilter()
     def __init__(self, tlwh, score):
 
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=float)
-        self.kalman_filter = None
+        self.ctra_kalman_filter = None
         self.mean, self.covariance = None, None
         self.is_activated = False
 
@@ -27,8 +21,8 @@ class STrack(BaseTrack):
     def predict(self):
         mean_state = self.mean.copy()
         if self.state != TrackState.Tracked:
-            mean_state[7] = 0
-        self.mean, self.covariance = self.kalman_filter.predict(mean_state, self.covariance)
+            mean_state[4:] = 0  # Reset acceleration and angular velocity for untracked objects
+        self.mean, self.covariance = self.ctra_kalman_filter.predict(mean_state, self.covariance)
 
     @staticmethod
     def multi_predict(stracks):
@@ -37,17 +31,18 @@ class STrack(BaseTrack):
             multi_covariance = np.asarray([st.covariance for st in stracks])
             for i, st in enumerate(stracks):
                 if st.state != TrackState.Tracked:
-                    multi_mean[i][7] = 0
+                    multi_mean[i][4:] = 0  # Reset acceleration and angular velocity for untracked objects
             multi_mean, multi_covariance = STrack.shared_kalman.multi_predict(multi_mean, multi_covariance)
             for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
                 stracks[i].mean = mean
                 stracks[i].covariance = cov
 
-    def activate(self, kalman_filter, frame_id):
+
+    def activate(self, ctra_kalman_filter, frame_id):
         """Start a new tracklet"""
-        self.kalman_filter = kalman_filter
+        self.ctra_kalman_filter = ctra_kalman_filter
         self.track_id = self.next_id()
-        self.mean, self.covariance = self.kalman_filter.initiate(self.tlwh_to_xyah(self._tlwh))
+        self.mean, self.covariance = self.ctra_kalman_filter.initiate(self.tlwh_to_xyah(self._tlwh))
 
         self.tracklet_len = 0
         self.state = TrackState.Tracked
@@ -58,7 +53,7 @@ class STrack(BaseTrack):
         self.start_frame = frame_id
 
     def re_activate(self, new_track, frame_id, new_id=False):
-        self.mean, self.covariance = self.kalman_filter.update(
+        self.mean, self.covariance = self.ctra_kalman_filter.update(
             self.mean, self.covariance, self.tlwh_to_xyah(new_track.tlwh)
         )
         self.tracklet_len = 0
@@ -81,7 +76,7 @@ class STrack(BaseTrack):
         self.tracklet_len += 1
 
         new_tlwh = new_track.tlwh
-        self.mean, self.covariance = self.kalman_filter.update(
+        self.mean, self.covariance = self.ctra_kalman_filter.update(
             self.mean, self.covariance, self.tlwh_to_xyah(new_tlwh))
         self.state = TrackState.Tracked
         self.is_activated = True
@@ -143,7 +138,7 @@ class STrack(BaseTrack):
         return 'OT_{}_({}-{})'.format(self.track_id, self.start_frame, self.end_frame)
 
 
-class BYTETracker(object):
+class CTRAByteTracker(object):
     def __init__(self, args, frame_rate=30):
         self.tracked_stracks = []  # typ: list[STrack]
         self.lost_stracks = []  # type: list[STrack]
@@ -155,7 +150,7 @@ class BYTETracker(object):
         self.det_thresh = args.track_thresh + 0.1
         self.buffer_size = int(frame_rate / 30.0 * args.track_buffer)
         self.max_time_lost = self.buffer_size
-        self.kalman_filter = KalmanFilter()
+        self.kalman_filter = CTRAKalmanFilter()
 
     def update(self, output_results, img_info, img_size):
         self.frame_id += 1
