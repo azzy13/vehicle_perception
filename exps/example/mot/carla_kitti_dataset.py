@@ -100,14 +100,14 @@ class Exp(MyExp):
 
         dataloader_kwargs = {"num_workers": self.data_num_workers, "pin_memory": True}
         dataloader_kwargs["batch_sampler"] = batch_sampler
-        
+        train_loader = DataLoader(self.dataset, **dataloader_kwargs)
         return train_loader
     
     def get_eval_dataset(self):
         from yolox.data import KittiDataset, ValTransform
 
         valdataset = KittiDataset(
-            data_dir=os.path.join(get_yolox_datadir(), self.eval_path, "validation"),
+            data_dir=os.path.join(get_yolox_datadir(), self.eval_path, "training"),
             img_size=self.test_size,
             training=False,
             preproc=ValTransform(

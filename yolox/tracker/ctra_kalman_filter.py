@@ -1,112 +1,112 @@
 import numpy as np
 
-# [x, y, v, θ, dv, ω, a, h, da, dh]
-# [x, y, a, h] - Use the position noise
-# [θ, v, dv, da, dh, ω] - Use the velocity noise
-# [x, y, a, h, θ, v, dv, da, dh, ω] 
-class OldCTRAKalmanFilter:
-    """
-    CTRA (Constant Turn Rate and Acceleration) Kalman Filter for tracking objects in 2D space.
-    Tracks a 6D state: [x, y, a, h, θ, v, dv, da, dh, ω], where:
-      - x, y : Position in 2D space (0, 1)
-      - a, h : Aspect ratio and height (2, 3)
-      - θ    : Heading angle (orientation in radians) (4)
-      - v    : Velocity (5)
-      - dv   : Acceleration (rate of change of velocity) (6)
-      - da   : Rate of change of aspect ratio (7)
-      - dh   : Rate of change of height (8)
-      - ω    : Turn rate (rate of change of heading angle) (9)
-    """
+# # [x, y, v, θ, dv, ω, a, h, da, dh]
+# # [x, y, a, h] - Use the position noise
+# # [θ, v, dv, da, dh, ω] - Use the velocity noise
+# # [x, y, a, h, θ, v, dv, da, dh, ω] 
+# class OldCTRAKalmanFilter:
+#     """
+#     CTRA (Constant Turn Rate and Acceleration) Kalman Filter for tracking objects in 2D space.
+#     Tracks a 6D state: [x, y, a, h, θ, v, dv, da, dh, ω], where:
+#       - x, y : Position in 2D space (0, 1)
+#       - a, h : Aspect ratio and height (2, 3)
+#       - θ    : Heading angle (orientation in radians) (4)
+#       - v    : Velocity (5)
+#       - dv   : Acceleration (rate of change of velocity) (6)
+#       - da   : Rate of change of aspect ratio (7)
+#       - dh   : Rate of change of height (8)
+#       - ω    : Turn rate (rate of change of heading angle) (9)
+#     """
 
-    def __init__(self):
-        dt = 1.0  # Time step (in seconds)
+#     def __init__(self):
+#         dt = 1.0  # Time step (in seconds)
 
-        # Motion matrix (F): Models how the state evolves over time
-        # x_new = x + v * dt, y_new = y + v * dt, etc.
-        #self._motion_mat = np.eye(6)  # Initialize as an identity matrix
-        #self._motion_mat[0, 2] = dt  # x depends on velocity (v)
-        #self._motion_mat[1, 2] = dt  # y depends on velocity (v)
-        #self._motion_mat[2, 4] = dt  # v depends on acceleration (a)
-        #self._motion_mat[3, 5] = dt  # θ depends on turn rate (ω)
+#         # Motion matrix (F): Models how the state evolves over time
+#         # x_new = x + v * dt, y_new = y + v * dt, etc.
+#         #self._motion_mat = np.eye(6)  # Initialize as an identity matrix
+#         #self._motion_mat[0, 2] = dt  # x depends on velocity (v)
+#         #self._motion_mat[1, 2] = dt  # y depends on velocity (v)
+#         #self._motion_mat[2, 4] = dt  # v depends on acceleration (a)
+#         #self._motion_mat[3, 5] = dt  # θ depends on turn rate (ω)
 
-        # Update matrix (H): Maps the full state to the observed state
-        # For example, maps [x, y, v, θ, dv, ω, a, h, da, dh] to observed [x, y, a, h]
-        self._update_mat = np.zeros((4, 10))
-        self._update_mat[0, 0] = 1  # x
-        self._update_mat[1, 1] = 1  # y
-        self._update_mat[2, 2] = 1  # a
-        self._update_mat[3, 3] = 1  # h
+#         # Update matrix (H): Maps the full state to the observed state
+#         # For example, maps [x, y, v, θ, dv, ω, a, h, da, dh] to observed [x, y, a, h]
+#         self._update_mat = np.zeros((4, 10))
+#         self._update_mat[0, 0] = 1  # x
+#         self._update_mat[1, 1] = 1  # y
+#         self._update_mat[2, 2] = 1  # a
+#         self._update_mat[3, 3] = 1  # h
 
-        # Process noise parameters
-        # These represent the expected uncertainty in the object's motion
-        self._std_weight_position = 1. / 20  # Position noise scaling factor
-        self._std_weight_velocity = 1. / 160  # Velocity noise scaling factor
+#         # Process noise parameters
+#         # These represent the expected uncertainty in the object's motion
+#         self._std_weight_position = 1. / 20  # Position noise scaling factor
+#         self._std_weight_velocity = 1. / 160  # Velocity noise scaling factor
 
-        # Measurement noise: Uncertainty in the measurements (e.g., x, y from sensors)
-        self._measurement_noise = 0.1  # Standard deviation of measurement noise
+#         # Measurement noise: Uncertainty in the measurements (e.g., x, y from sensors)
+#         self._measurement_noise = 0.1  # Standard deviation of measurement noise
 
 
 
-    def initiate(self, measurement):
-        mean = np.zeros(6)  # [x, y, v, θ, a, ω]
-        mean[:2] = measurement[:2]  # x, y
-        mean[3] = measurement[2]  # θ
-        covariance = np.diag([2 * self._std_weight_position] * 2 +
-                             [1.0, 0.5, 0.1, 0.1]) ** 2
-        return mean, covariance
+#     def initiate(self, measurement):
+#         mean = np.zeros(6)  # [x, y, v, θ, a, ω]
+#         mean[:2] = measurement[:2]  # x, y
+#         mean[3] = measurement[2]  # θ
+#         covariance = np.diag([2 * self._std_weight_position] * 2 +
+#                              [1.0, 0.5, 0.1, 0.1]) ** 2
+#         return mean, covariance
 
-    def predict(self, mean, covariance, dt=1.0):
-        mean[0] += mean[2] * dt * np.cos(mean[3])  # x
-        mean[1] += mean[2] * dt * np.sin(mean[3])  # y
-        mean[2] += mean[4] * dt  # velocity
-        mean[3] += mean[5] * dt  # heading angle
-        motion_cov = np.diag([self._std_weight_position] * 6)
-        covariance += motion_cov
-        return mean, covariance
+#     def predict(self, mean, covariance, dt=1.0):
+#         mean[0] += mean[2] * dt * np.cos(mean[3])  # x
+#         mean[1] += mean[2] * dt * np.sin(mean[3])  # y
+#         mean[2] += mean[4] * dt  # velocity
+#         mean[3] += mean[5] * dt  # heading angle
+#         motion_cov = np.diag([self._std_weight_position] * 6)
+#         covariance += motion_cov
+#         return mean, covariance
 
-    def predict_state(self, state, dt=1.0):
-        print("Debug Info:")
-        predicted_state = state.copy()
-        predicted_state[0] += predicted_state[2] * dt * np.cos(predicted_state[3])
-        predicted_state[1] += predicted_state[2] * dt * np.sin(predicted_state[3])
-        predicted_state[2] += predicted_state[4] * dt
-        predicted_state[3] += predicted_state[5] * dt
-        return predicted_state
+#     def predict_state(self, state, dt=1.0):
+#         print("Debug Info:")
+#         predicted_state = state.copy()
+#         predicted_state[0] += predicted_state[2] * dt * np.cos(predicted_state[3])
+#         predicted_state[1] += predicted_state[2] * dt * np.sin(predicted_state[3])
+#         predicted_state[2] += predicted_state[4] * dt
+#         predicted_state[3] += predicted_state[5] * dt
+#         return predicted_state
 
-    def update(self, mean, covariance, measurement):
-        H = np.array([[1, 0, 0, 0, 0, 0],
-                      [0, 1, 0, 0, 0, 0]])
-        print(H.shape)
-        #R = np.eye(2) * self._measurement_noise
-        #print(R.shape)
+#     def update(self, mean, covariance, measurement):
+#         H = np.array([[1, 0, 0, 0, 0, 0],
+#                       [0, 1, 0, 0, 0, 0]])
+#         print(H.shape)
+#         #R = np.eye(2) * self._measurement_noise
+#         #print(R.shape)
 
-        print("Debug Info:")
-        print("Mean shape:", mean.shape)
-        print("Covariance shape:", covariance.shape)
-        print("Measurement shape:", measurement.shape)
+#         print("Debug Info:")
+#         print("Mean shape:", mean.shape)
+#         print("Covariance shape:", covariance.shape)
+#         print("Measurement shape:", measurement.shape)
 
-        # Kalman gain
-        S = H @ covariance @ H.T + R
-        K = covariance @ H.T @ np.linalg.inv(S)
+#         # Kalman gain
+#         S = H @ covariance @ H.T + R
+#         K = covariance @ H.T @ np.linalg.inv(S)
 
-        # Measurement residual
-        residual = measurement - H @ mean
-        updated_mean = mean + K @ residual
-        updated_covariance = (np.eye(mean.shape[0]) - K @ H) @ covariance
+#         # Measurement residual
+#         residual = measurement - H @ mean
+#         updated_mean = mean + K @ residual
+#         updated_covariance = (np.eye(mean.shape[0]) - K @ H) @ covariance
 
-        return updated_mean, updated_covariance
+#         return updated_mean, updated_covariance
 
-    def multi_predict(self, means, covariances, dt=1.0):
-        motion_mats = np.tile(self._motion_mat, (len(means), 1, 1))
-        motion_mats[:, 0, 2] = dt * np.cos(means[:, 3])
-        motion_mats[:, 1, 2] = dt * np.sin(means[:, 3])
-        motion_mats[:, 2, 4] = dt
-        motion_mats[:, 3, 5] = dt
+#     def multi_predict(self, means, covariances, dt=1.0):
+#         motion_mats = np.tile(self._motion_mat, (len(means), 1, 1))
+#         motion_mats[:, 0, 2] = dt * np.cos(means[:, 3])
+#         motion_mats[:, 1, 2] = dt * np.sin(means[:, 3])
+#         motion_mats[:, 2, 4] = dt
+#         motion_mats[:, 3, 5] = dt
 
-        means = np.einsum('ijk,ik->ij', motion_mats, means)
-        covariances = np.einsum('ijk,ikl->ijl', motion_mats, covariances)
-        covariances = np.einsum('ijl,ikl->ijk', covariances, motion_mats)
-        return means, covariances
+#         means = np.einsum('ijk,ik->ij', motion_mats, means)
+#         covariances = np.einsum('ijk,ikl->ijl', motion_mats, covariances)
+#         covariances = np.einsum('ijl,ikl->ijk', covariances, motion_mats)
+#         return means, covariances
 
 
 # vim: expandtab:ts=4:sw=4
@@ -136,7 +136,7 @@ chi2inv95 = {
 class CTRAKalmanFilter(object):
     """
     CTRA (Constant Turn Rate and Acceleration) Kalman Filter for tracking objects in 2D space.
-    Tracks a 6D state: [x, y, a, h, θ, v, dv, da, dh, ω], where:
+    Tracks a 10D state: [x, y, a, h, θ, v, dv, da, dh, ω], where:
       - x, y : Position in 2D space (0, 1)
       - a, h : Aspect ratio and height (2, 3)
       - θ    : Heading angle (orientation in radians) (4)
