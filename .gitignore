@@ -141,7 +141,7 @@ pretrained
 YOLOX_outputs
 tutorials
 assets
-datasets
+/datasets
 cocoapi
 videos
 /videos/
