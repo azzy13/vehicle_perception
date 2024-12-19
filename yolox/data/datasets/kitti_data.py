@@ -25,6 +25,7 @@ class KittiDataset(Dataset):
         self.img_size = img_size
         self.preproc = preproc
         self.training = training
+        self.train_mode = training
 
     def __len__(self):
         return self.img_count
@@ -86,6 +87,8 @@ class KittiDataset(Dataset):
         # load image and preprocess
         img = cv2.imread(file_name)
         assert img is not None
+        if self.train_mode:
+            return img, res.copy(), img_info, np.array([id_[1]])
         return img, res.copy(), img_info, np.array([id_[1]]), track_ids
 
     @Dataset.resize_getitem
@@ -115,6 +118,6 @@ class KittiDataset(Dataset):
 
         if self.preproc is not None:
             img, target = self.preproc(img, target, self.input_dim)
-        if self.training:
+        if self.train_mode:
             return img, target, img_info, int(img_id)
         return img, target, img_info, int(img_id), track_ids

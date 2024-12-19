@@ -8,3 +8,6 @@ from .mot import MOTDataset
 from .ansr_dev import AnsrDataset
 from .carla_data import CarlaDataset
 from .kitti_data import KittiDataset
+from .ua_data import UADataset
+from .bdd_data import BDDDataset
+from .merge_data import MergeDataset
