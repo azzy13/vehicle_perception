@@ -82,7 +82,6 @@ def convert_multiple_to_coco(input_files, output_file):
     # Save combined COCO JSON
     with open(output_file, 'w') as f:
         json.dump(coco_data, f, indent=4)
-    print(f"Combined COCO JSON saved to {output_file}")
 
 
 
@@ -144,8 +143,8 @@ class KittiEvaluator:
         distributed=False,
         half=False,
         decoder=None,
-        result_folder="YOLOX_outputs/carla_kitti_dataset/track_results",
-        ground_truth_folder="YOLOX_outputs/carla_kitti_dataset/ground_truth",
+        result_folder="YOLOX_outputs/merge_dataset/track_results",
+        ground_truth_folder="YOLOX_outputs/merge_dataset/ground_truth",
     ):
         """
         COCO average precision (AP) Evaluation. Iterate inference on the test dataset
@@ -259,6 +258,8 @@ class KittiEvaluator:
                 results.append((frame_id, online_tlwhs, online_ids, online_scores))
                 for i in range(targets.shape[1]):
                     line = targets[0][i][0:4]
+                    line[2] = line[2] - line[0]
+                    line[3] = line[3] - line[1]
                     track_id = track_ids[i].item()
                     results_gt.append((frame_id, [line.cpu().numpy().tolist()], [track_id]))
 

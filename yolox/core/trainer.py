@@ -40,7 +40,7 @@ class Trainer:
         # training related attr
         self.max_epoch = exp.max_epoch
         self.amp_training = args.fp16
-        self.scaler = torch.cuda.amp.GradScaler(enabled=args.fp16)
+        self.scaler = torch.GradScaler("cuda", enabled=args.fp16)
         self.is_distributed = get_world_size() > 1
         self.rank = get_rank()
         self.local_rank = args.local_rank
@@ -93,11 +93,11 @@ class Trainer:
         inps, targets = self.prefetcher.next()
         track_ids = targets[:, :, 5]
         targets = targets[:, :, :5]
-        inps = inps.to(self.data_type)
-        targets = targets.to(self.data_type)
+        inps = inps.to(self.data_type).to(self.device)
+        targets = targets.to(self.data_type).to(self.device)
         targets.requires_grad = False
         data_end_time = time.time()
-        with torch.cuda.amp.autocast(enabled=self.amp_training):
+        with torch.amp.autocast("cuda", enabled=self.amp_training):
             outputs = self.model(inps, targets)
         loss = outputs["total_loss"]
 
@@ -120,6 +120,7 @@ class Trainer:
             lr=lr,
             **outputs,
         )
+        del inps, targets
 
     def before_train(self):
         logger.info("args: {}".format(self.args))

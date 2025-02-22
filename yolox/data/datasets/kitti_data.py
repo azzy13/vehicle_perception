@@ -15,6 +15,7 @@ class KittiDataset(Dataset):
         self,
         data_dir="/isis/home/hasana3/ByteTrack/datasets/kitti/training",
         img_size=(608, 1088),
+        name="validation",
         training=False,
         preproc=None,
     ):
@@ -63,7 +64,7 @@ class KittiDataset(Dataset):
             x2 = obj["bbox"][2]
             y2 = obj["bbox"][3]
             if x2 >= x1 and y2 >= y1:
-                obj["clean_bbox"] = [x1, y1, x2 - x1, y2 - y1]
+                obj["clean_bbox"] = [x1, y1, x2, y2]
                 objs.append(obj)
                 track_ids.append(obj["track_id"])
 
@@ -113,7 +114,11 @@ class KittiDataset(Dataset):
                 dx, dy (int): pad size
             img_id (int): same as the input index. Used for evaluation.
         """
-        img, target, img_info, img_id, track_ids = self.pull_item(index)
+        if self.train_mode:
+            img, target, img_info, img_id = self.pull_item(index)
+        else:
+            img, target, img_info, img_id, track_ids = self.pull_item(index)
+
         initial_size = img.shape
 
         if self.preproc is not None:

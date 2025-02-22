@@ -44,7 +44,8 @@ class BDDDataset(Dataset):
                 if 'labels' not in entry:
                     continue
                 for label in entry['labels']:
-                    if (not label['attributes']['occluded']) and (not label['attributes']['truncated']) and (label['category'] in vehicle_list):
+                    #if (not label['attributes']['occluded']) and (not label['attributes']['truncated']) and (label['category'] in vehicle_list):
+                    if (label['category'] in vehicle_list):
                         obj = {}
                         obj['bbox'] = []
                         obj['bbox'].append(label['box2d']['x1'])
@@ -76,7 +77,7 @@ class BDDDataset(Dataset):
             x2 = obj["bbox"][2]
             y2 = obj["bbox"][3]
             if x2 >= x1 and y2 >= y1:
-                obj["clean_bbox"] = [x1, y1, x2 - x1, y2 - y1]
+                obj["clean_bbox"] = [x1, y1, x2, y2]
                 objs.append(obj)
 
         num_objs = len(objs)

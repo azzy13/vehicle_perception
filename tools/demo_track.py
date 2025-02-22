@@ -28,7 +28,7 @@ def make_parser():
 
     parser.add_argument(
         #"--path", default="./datasets/mot/train/MOT17-05-FRCNN/img1", help="path to images or video"
-        "--path", default="./videos/carla1.mp4", help="path to images or video"
+        "--path", default="./videos/airsim1.mp4", help="path to images or video"
     )
     parser.add_argument("--camid", type=int, default=0, help="webcam demo camera id")
     parser.add_argument(
@@ -52,8 +52,8 @@ def make_parser():
         type=str,
         help="device to run our model, can either be cpu or gpu",
     )
-    parser.add_argument("--conf", default=None, type=float, help="test conf")
-    parser.add_argument("--nms", default=None, type=float, help="test nms threshold")
+    parser.add_argument("--conf", default=0.01, type=float, help="test conf")
+    parser.add_argument("--nms", default=0.17, type=float, help="test nms threshold")
     parser.add_argument("--tsize", default=None, type=int, help="test img size")
     parser.add_argument("--fps", default=30, type=int, help="frame rate (fps)")
     parser.add_argument(
@@ -78,11 +78,11 @@ def make_parser():
         help="Using TensorRT model for testing.",
     )
     # tracking args
-    parser.add_argument("--track_thresh", type=float, default=0.5, help="tracking confidence threshold")
-    parser.add_argument("--track_buffer", type=int, default=30, help="the frames for keep lost tracks")
-    parser.add_argument("--match_thresh", type=float, default=0.8, help="matching threshold for tracking")
+    parser.add_argument("--track_thresh", type=float, default=0.2, help="tracking confidence threshold")
+    parser.add_argument("--track_buffer", type=int, default=300, help="the frames for keep lost tracks")
+    parser.add_argument("--match_thresh", type=float, default=0.5, help="matching threshold for tracking")
     parser.add_argument(
-        "--aspect_ratio_thresh", type=float, default=1.6,
+        "--aspect_ratio_thresh", type=float, default=4,
         help="threshold for filtering out boxes of which aspect ratio are above the given value."
     )
     parser.add_argument('--min_box_area', type=float, default=10, help='filter out tiny boxes')
@@ -311,7 +311,7 @@ def main(exp, args):
 
     if args.trt:
         args.device = "gpu"
-    args.device = torch.device("cuda" if args.device == "gpu" else "cpu")
+    args.device = torch.device("cuda:0" if args.device == "gpu" else "cpu")
 
     logger.info("Args: {}".format(args))
 
@@ -359,6 +359,7 @@ def main(exp, args):
 
     predictor = Predictor(model, exp, trt_file, decoder, args.device, args.fp16)
     current_time = time.localtime()
+    logger.info("ARGS: {}".format(args.demo))
     if args.demo == "image":
         image_demo(predictor, vis_folder, current_time, args)
     elif args.demo == "video" or args.demo == "webcam":
