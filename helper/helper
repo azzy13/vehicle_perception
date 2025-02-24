@@ -3,6 +3,7 @@ python3 tools/demo_track.py video -f exps/example/mot/carla_drone.py -c pretrain
 
 #Run Eval
 NCCL_P2P_DISABLE=1  python3 tools/track.py -d 1 -f exps/example/mot/carla_drone.py -c pretrained/latest_ckpt.pth.tar --fp16 --fuse --ctra
+NCCL_P2P_DISABLE=1  python3 tools/track.py -d 1 -f exps/example/mot/run_bdd_eval.py -c pretrained/ground.pth.tar --fp16 --fuse --ctra
 
 #kill all GPU processes
 nvidia-smi --query-compute-apps=pid --format=csv,noheader | xargs -n1 kill -9
