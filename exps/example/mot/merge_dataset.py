@@ -73,7 +73,6 @@ class Exp(MyExp):
             ),
         )
 
-        
         #Coco Dataset
         coco_dataset = CarlaDataset(
             data_dir=os.path.join(get_yolox_datadir(), self.coco_path),

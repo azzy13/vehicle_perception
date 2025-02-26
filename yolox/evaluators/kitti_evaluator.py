@@ -143,8 +143,8 @@ class KittiEvaluator:
         distributed=False,
         half=False,
         decoder=None,
-        result_folder="YOLOX_outputs/merge_dataset/track_results",
-        ground_truth_folder="YOLOX_outputs/merge_dataset/ground_truth",
+        result_folder="YOLOX_outputs/carla_drone/track_results",
+        ground_truth_folder="YOLOX_outputs/carla_drone/ground_truth",
     ):
         """
         COCO average precision (AP) Evaluation. Iterate inference on the test dataset

@@ -37,8 +37,7 @@ class Exp(MyExp):
         self.basic_lr_per_img = 0.00001
         self.warmup_epochs = 1
         self.drone_path = "carla_drone_data"
-        self.kitti_path = "kitti"
-        self.eval_path = "kitti"
+        self.eval_path = "carla_drone_data_eval"
 
     def get_data_loader(self, batch_size, is_distributed, no_aug=False):
         from yolox.data import (
@@ -105,16 +104,16 @@ class Exp(MyExp):
         return train_loader
     
     def get_eval_dataset(self):
-        from yolox.data import KittiDataset, ValTransform
+        from yolox.data import CARLADroneDataset, ValTransform
 
-        valdataset = KittiDataset(
-            data_dir=os.path.join(get_yolox_datadir(), self.kitti_path, "validation"),
-            img_size=self.test_size,
-            training=False,
+        valdataset = CARLADroneDataset(
+            data_dir=os.path.join(get_yolox_datadir(), self.eval_path),
+            img_size=self.input_size,
             preproc=ValTransform(
                 rgb_means=(0.485, 0.456, 0.406),
-                std=(0.229, 0.224, 0.225)
+                std=(0.229, 0.224, 0.225),
             ),
+            eval=True
         )
 
         return valdataset
