@@ -60,7 +60,7 @@ python tools/convert_detrac_to_coco.py
 Train the model using the following command:
 
 ```bash
-python tools/train.py -f exps/mot/yolox_x_ctra.py -d 8 -b 48 --fp16 -o -c pretrained/yolox_x.pth
+python tools/train.py -f exps/example/mot/carla_drone.py -c pretrained/ground.pth.tar -d 8 -b 48 --fp16 -o
 ```
 
 - `-f` specifies the experiment file.
@@ -71,15 +71,16 @@ python tools/train.py -f exps/mot/yolox_x_ctra.py -d 8 -b 48 --fp16 -o -c pretra
 ## Tracking
 
 Run tracking on test videos:
+python3 tools/demo_track.py video 
 
 ```bash
-python tools/track.py -f exps/mot/yolox_x_ctra.py -c pretrained/bytetrack_x_mot17.pth.tar -b 1 -d 1 --fp16 --fuse
+python tools/track.py -f exps/example/mot/carla_drone.py -c pretrained/ground.pth.tar -b 1 -d 1 --fp16 --fuse
 ```
 
 For visualization, use:
 
 ```bash
-python tools/demo_track.py video -f exps/mot/yolox_x_ctra.py -c pretrained/bytetrack_x_mot17.pth.tar --fp16 --fuse --save_result
+python tools/demo_track.py video -f exps/example/mot/carla_drone.py -c pretrained/ground.pth.tar --fp16 --fuse --save_result
 ```
 
 ## Results
