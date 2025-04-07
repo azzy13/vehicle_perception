@@ -1,7 +1,4 @@
 # Vehicle Perception: Neurosymbolic Multi-Object Tracking
-
-[![Papers with Code](https://img.shields.io/badge/Paper-PMLR2025-blue)](https://github.com/azzy13/vehicle_perception)
-
 ## Overview
 
 This repository presents a **neurosymbolic approach** to **multi-object tracking (MOT)** in **dynamic camera environments**. Building on **ByteTrack**, this project integrates **neural detection models (YOLOX)** with **symbolic motion models (Kalman Filter & Constant Turn Rate and Acceleration - CTRA)** to enhance vehicle tracking in real-world settings such as autonomous driving and drone surveillance.
@@ -9,7 +6,6 @@ This repository presents a **neurosymbolic approach** to **multi-object tracking
 ## Key Features
 
 - **Enhanced Motion Modeling**: Incorporates **CTRA** to account for **non-linear** object motion.
-- **Dual Association Strategy**: First matches **high-confidence detections**, then **low-confidence detections** to **recover lost tracks**.
 - **Multi-Dataset Integration**: Training data sourced from **KITTI, BDD100k, COCO, and UA-DETRAC**.
 - **Optimized Tracking Parameters**: Bayesian **hyperparameter optimization** with **Optuna**.
 - **Support for Dynamic Cameras**: Robust to **perspective shifts, motion blur, and frame rate variations**.
@@ -47,13 +43,7 @@ datasets
    |    ├── annotations
 ```
 
-Convert datasets to COCO format using:
-
-```bash
-python tools/convert_kitti_to_coco.py
-python tools/convert_crowdhuman_to_coco.py
-python tools/convert_detrac_to_coco.py
-```
+Convert datasets to COCO format.
 
 ## Training
 
@@ -93,19 +83,6 @@ Tracking evaluated on KITTI (10 FPS, dynamic camera conditions):
 | ByteTrack + CTRA     | 57.8% | 74.0% | 405 | 29.1 |
 
 **Findings:** Despite **CTRA's improved motion modeling**, results indicate a **slight degradation** in tracking performance, warranting further investigation.
-
-## Citation
-
-If you find this work useful, please cite:
-
-```
-@article{hasan2025mot,
-  title={Integrating Neural and Symbolic Methods for Multi-Object Tracking in Dynamic Camera Environments},
-  author={Hasan, Azhar and Richardson, Alex and Karsai, Gabor},
-  booktitle={Proceedings of Machine Learning Research},
-  year={2025}
-}
-```
 
 ## Contact
 
