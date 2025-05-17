@@ -1,5 +1,21 @@
 #Run Inference
-python3 tools/demo_track.py video -f exps/example/mot/carla_drone.py -c pretrained/drone.pth.tar --fp16 --fuse --save_result
+python3 tools/demo_track.py video -f exps/example/mot/carla_drone.py -c pretrained/ground.pth.tar --fp16 --fuse --save_result
+
+python3 tools/demo_track.py video \
+  -f exps/example/mot/carla_drone.py \
+  -c pretrained/ground.pth.tar \
+  --path ./videos/CarHDfield.mp4 \
+  --conf 0.25 \
+  --track_thresh 0.3 \
+  --track_buffer 500 \
+  --match_thresh 0.5 \
+  --aspect_ratio_thresh 8 \
+  --min_box_area 1 \
+  --tsize 640 \
+  --fps 30 \
+  --save_result \
+  --fp16 \
+  --fuse
 
 #Run Eval
 NCCL_P2P_DISABLE=1  python3 tools/track.py -d 1 -f exps/example/mot/carla_drone.py -c pretrained/latest_ckpt.pth.tar --fp16 --fuse --ctra
@@ -13,6 +29,9 @@ python3 tools/train.py -f exps/example/mot/ansr_dev_dataset.py -d 2 -b 8 --fp16 
 
 python3 tools/train.py -f exps/example/mot/carla_dataset.py -d 1 -b 4 --fp16 -o -c pretrained/ansr_dev.pth.tar
 
+#convert an image directory to a video
+python3 tools/conert_to_video.py --input_dir /isis/home/hasana3/ByteTrack/YOLOX_outputs/carla_drone/track_vis/2025_03_10_11_47_39 --output detections_video.mp4 --fps 10
+
 #Carla tutorial headless
 https://arijitray1993.github.io/CARLA_tutorial/
 
@@ -23,4 +42,5 @@ The parameters in the provided command are:
 4. `--fp16`: This enables the use of mixed precision training, which can speed up training and reduce memory usage.
 
 5. `-o`: This enables the use of the optimizer specified in the experiment configuration file.
+
 
